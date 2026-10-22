@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #0e0d13;
+  --ink-raised: #17151f;
+  --ink-line: #2a2734;
+  --paper: #efe9df;
+  --paper-dim: #a29c94;
+  --paper-faint: #6b6670;
+  --shu: #e0573d; /* 朱 vermilion, the app's own accent */
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-raised: var(--ink-raised);
+  --color-ink-line: var(--ink-line);
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-paper-faint: var(--paper-faint);
+  --color-shu: var(--shu);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-mincho: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+}
+
+html,
+body {
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation; /* no double-tap zoom on fast +1 taps */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* +1 micro-interactions */
+@keyframes bump {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-6%) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+.animate-bump {
+  animation: bump 380ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.8); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -72px) scale(1.15); }
+}
+.animate-float-up {
+  animation: float-up 700ms ease-out forwards;
+}
+
+@keyframes sheen {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to { transform: translateX(220%) skewX(-20deg); }
+}
+.animate-sheen {
+  animation: sheen 600ms ease-out;
+}
+
+/* Finish celebration */
+@keyframes confetti-fall {
+  0% { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--drift), 110vh, 0) rotate(var(--spin)); opacity: 0.9; }
+}
+.confetti {
+  animation: confetti-fall var(--dur) cubic-bezier(0.2, 0.6, 0.4, 1) var(--delay) forwards;
+}
+
+@keyframes stamp {
+  0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+  60% { transform: scale(0.92) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+.animate-stamp {
+  animation: stamp 520ms cubic-bezier(0.2, 1.4, 0.4, 1) 200ms both;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-sheet-in {
+  animation: sheet-in 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bump, .animate-float-up, .animate-sheen, .confetti, .animate-stamp, .animate-sheet-in {
+    animation: none;
+  }
+}
