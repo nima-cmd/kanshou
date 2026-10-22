@@ -18,10 +18,10 @@ A personal anime tracking and recommendation app for two people who watch togeth
 ## Tech stack
 - **Next.js (App Router) + TypeScript + Tailwind CSS**
 - **PWA:** installable on iPad and iPhone via Safari "Add to Home Screen." No App Store needed. Touch-first, tablet layout is the primary design target, with offline-friendly caching.
-- **Cloudflare D1 (free tier):** SQLite database so our data syncs across iPad, phones and the desktop. Two user profiles in one shared household; sign-in via Cloudflare Access or a simple household login. (Chosen over Supabase to avoid free-tier pausing and project limits.)
+- **Cloudflare D1 (free tier):** SQLite database so our data syncs across iPad, phones and the desktop. One household, signed in with a shared passphrase (Worker secret); one profile for now, schema allows more. Keep idle polls cheap: D1 free counts rows read per day. (Chosen over Supabase to avoid free-tier pausing and project limits.)
 - **AniList GraphQL API** (https://graphql.anilist.co): free and no key needed for public data. It supplies the anime and manga catalog, covers and banners, genres and tags, relations (anime ↔ source manga), community recommendations, and `externalLinks` (streaming sites). Respect the rate limit (~90 req/min, sometimes lower). Cache responses in our DB.
 - **TMDB API** (free, non-commercial, key required): `watch/providers` per title for the **US region**. The data is from JustWatch, so attribution to TMDB and JustWatch is required in the UI. Map AniList titles → TMDB IDs by title, year and type, and store the mapping.
-- **Hosting:** Cloudflare Pages/Workers free tier (Next.js via the OpenNext Cloudflare adapter). Not Vercel, not DigitalOcean. Never route images through our host: covers load directly from AniList's CDN (`images.unoptimized`).
+- **Hosting:** Cloudflare Workers free tier (Next.js via the OpenNext Cloudflare adapter, static-assets incremental cache). Not Vercel, not DigitalOcean. Keep `cacheComponents` off (it hangs on Workers). Keep the Worker under the free plan's 3 MiB gzipped limit (currently ~1 MiB). Never route images through our host: covers load directly from AniList's CDN (`images.unoptimized`).
 - **Optional later:** Claude API for written "why you'll like this" recs. It's the only part that costs money, and pennies at our volume.
 
 ## Design direction

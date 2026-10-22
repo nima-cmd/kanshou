@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Media } from "@/lib/anilist";
 import { useKanshou, type Entry } from "@/lib/store";
+import { startSync, useSync } from "@/lib/sync";
 import { Celebration } from "./Celebration";
 import { SearchSheet } from "./SearchSheet";
 import { SettingsSheet } from "./SettingsSheet";
+import { SignIn } from "./SignIn";
+import { SyncDot } from "./SyncDot";
 import { EmptySlot, SlotCard } from "./SlotCard";
 
 type Search = { slot: number | null } | null;
@@ -16,7 +19,14 @@ function Today() {
 }
 
 export function Slate() {
+  const sync = useSync();
+  if (sync && (!sync.account || sync.status === "signed-out")) return <SignIn />;
+  return <SignedInSlate />;
+}
+
+function SignedInSlate() {
   const state = useKanshou();
+  useEffect(startSync, []);
   const [search, setSearch] = useState<Search>(null);
   const [settings, setSettings] = useState(false);
   const [finished, setFinished] = useState<{ media: Media; entry: Entry; slot: number } | null>(null);
@@ -28,7 +38,8 @@ export function Slate() {
           <span className="whitespace-nowrap font-mincho text-4xl font-semibold text-paper">鑑賞</span>
           <span className="hidden text-sm uppercase tracking-[0.3em] text-paper-faint sm:inline">Kanshou</span>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          <SyncDot />
           <button
             onClick={() => setSearch({ slot: null })}
             className="h-12 whitespace-nowrap rounded-full bg-shu px-5 font-semibold text-ink active:scale-95"

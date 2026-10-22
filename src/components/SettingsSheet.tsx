@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { exportData, importData, MAX_ROTATION, MIN_ROTATION, setRotationSize, type State } from "@/lib/store";
+import { setAccount, syncNow, useSync } from "@/lib/sync";
 
 export function SettingsSheet({ state, onClose }: { state: State; onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -27,6 +28,12 @@ export function SettingsSheet({ state, onClose }: { state: State; onClose: () =>
   };
 
   const filled = state.slots.filter((s) => s !== null).length;
+  const sync = useSync();
+
+  const signOut = async () => {
+    await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    setAccount(null);
+  };
 
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-6" onClick={onClose}>
@@ -63,10 +70,28 @@ export function SettingsSheet({ state, onClose }: { state: State; onClose: () =>
         </section>
 
         <section className="mt-8">
-          <h3 className="text-sm font-medium uppercase tracking-[0.2em] text-paper-faint">Backup</h3>
+          <h3 className="text-sm font-medium uppercase tracking-[0.2em] text-paper-faint">Sync</h3>
           <p className="mt-2 text-sm text-paper-dim">
-            Until sync arrives, everything lives on this device only. Save a backup now and then.
+            Signed in as <span className="text-paper">{sync?.account?.name}</span>.{" "}
+            {sync?.status === "offline"
+              ? "Offline right now; changes sync when you're back online."
+              : sync?.lastSyncedAt
+                ? `Last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`
+                : "Syncing with the household."}
           </p>
+          <div className="mt-3 flex gap-3">
+            <button onClick={() => syncNow()} className="h-14 flex-1 rounded-2xl bg-white/5 ring-1 ring-white/10 active:bg-white/15">
+              Sync now
+            </button>
+            <button onClick={signOut} className="h-14 flex-1 rounded-2xl bg-white/5 text-paper-dim ring-1 ring-white/10 active:bg-white/15">
+              Sign out
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h3 className="text-sm font-medium uppercase tracking-[0.2em] text-paper-faint">Backup</h3>
+          <p className="mt-2 text-sm text-paper-dim">A file copy of everything, just in case.</p>
           <div className="mt-3 flex gap-3">
             <button onClick={download} className="h-14 flex-1 rounded-2xl bg-white/5 ring-1 ring-white/10 active:bg-white/15">
               Save backup

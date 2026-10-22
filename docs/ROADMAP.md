@@ -11,13 +11,17 @@ Small vertical slices. Each phase ends with something we use for real.
 - [x] Start and finish dates; finishing a show celebrates and moves it out of the rotation
 - [x] Data in localStorage, with JSON export/import as a backup
 - [x] Dark, iPad-first layout with cover-color accents
-- [ ] Offline caching on the iPad (the service worker is built; it needs HTTPS, so it turns on with the Phase 2 deploy)
+- [ ] Offline caching on the iPad (the service worker is built; it needs HTTPS, so it turns on after the first deploy)
 
 ## Phase 2: Sync between our devices
-- [ ] Cloudflare Pages + D1 (Next.js via the OpenNext Cloudflare adapter)
-- [ ] Household with two profiles, sign-in (Cloudflare Access or a household login)
-- [ ] Move localStorage data to the DB (one-time migration)
-- [ ] Deploy, so it works away from home Wi-Fi
+- [x] Cloudflare Workers + D1 via the OpenNext adapter (static-assets cache, so no R2/KV)
+- [x] Household passphrase sign-in, year-long session, lockout after 10 bad tries
+- [x] One profile for now (schema allows up to 4; profile picker appears when there's more than one)
+- [x] Local-first sync: outbox, newest-wins merge, sync on change/foreground/online/30 s
+- [x] Idle polls read one row (change stamp) to stay far under D1's daily read limit
+- [x] Device's existing local data uploads on first sign-in; Restore backup uploads too
+- [ ] First deploy (needs `wrangler login`; steps in README)
+- [ ] Move the iPad's Phase 1 data over (Save backup → Restore on the new address)
 
 ## Phase 3: The log
 - [ ] Completed shows: half-star rating and short review **per person**, finish date, rewatch flag
@@ -47,7 +51,9 @@ Small vertical slices. Each phase ends with something we use for real.
 - Ratings and reviews are separate per person.
 - Rotation size is configurable and defaults to 4.
 - History comes from a Crunchyroll history import (Phase 3).
-- Hosting: Cloudflare Pages + D1, not Vercel + Supabase and not DigitalOcean.
+- Hosting: Cloudflare (Workers + D1), not Vercel + Supabase and not DigitalOcean.
+- Sign-in: one household passphrase; one profile for now.
+- Next.js Cache Components stays off: it hangs on the Workers runtime.
 
 ## Hosting and caps
 Goal: no surprise caps at two-person scale. Cloudflare doesn't pause inactive projects and doesn't cap static bandwidth.

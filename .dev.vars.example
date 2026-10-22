@@ -1,0 +1,5 @@
+# Local secrets for `pnpm dev` / `pnpm preview`. Copy to .dev.vars (gitignored).
+# In production, set them with `pnpm wrangler secret put <NAME>`.
+HOUSEHOLD_PASSPHRASE=pick-a-long-phrase-you-both-remember
+# 32+ random bytes, e.g. `openssl rand -base64 32`
+SESSION_SECRET=

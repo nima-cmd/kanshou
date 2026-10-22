@@ -1,8 +1,8 @@
 "use client";
 
-// Phase 1 storage: one JSON document in localStorage. The shape mirrors the
-// planned D1 tables (entry, rotation_slot, media_cache) so Phase 2 can migrate
-// it with a straight copy.
+// Local-first storage: one JSON document in localStorage, so taps are instant
+// and the app keeps working offline. Every change also lands in an outbox that
+// src/lib/sync.ts pushes to D1; the server's merged state then comes back here.
 
 import { useSyncExternalStore } from "react";
 import { knownEpisodes, type Media } from "./anilist";
@@ -23,6 +23,10 @@ export type State = {
   rotationSize: number;
   /** Media id per rotation position; null is an open slot. */
   slots: (number | null)[];
+  /** When the rotation (slots or size) last changed; decides sync conflicts. */
+  rotationUpdatedAt?: string;
+  /** Server's change stamp as of the last sync; lets idle polls skip the full read. */
+  syncedAt?: string;
   entries: Record<string, Entry>;
   media: Record<string, Media>;
 };
@@ -30,6 +34,7 @@ export type State = {
 export const MIN_ROTATION = 1;
 export const MAX_ROTATION = 8;
 const KEY = "kanshou:v1";
+const OUTBOX_KEY = "kanshou:outbox";
 
 const emptyState = (): State => ({
   version: 1,
@@ -87,9 +92,22 @@ const now = () => new Date().toISOString();
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
 
 function update(fn: (draft: State) => void) {
-  const draft = structuredClone(read());
+  const before = read();
+  const draft = structuredClone(before);
   fn(draft);
+
+  // Queue whatever changed for the next sync.
+  const outbox = readOutbox();
+  for (const [id, entry] of Object.entries(draft.entries)) {
+    if (before.entries[id]?.updatedAt !== entry.updatedAt) outbox.entries[id] = ++outbox.seq;
+  }
+  if (draft.rotationSize !== before.rotationSize || JSON.stringify(draft.slots) !== JSON.stringify(before.slots)) {
+    draft.rotationUpdatedAt = now();
+    outbox.rotation = ++outbox.seq;
+  }
+  writeOutbox(outbox);
   write(draft);
+  changeListener?.();
 }
 
 export function addToRotation(media: Media, slot?: number) {
@@ -217,5 +235,119 @@ export function importData(json: string) {
   if (parsed.version !== 1 || !Array.isArray(parsed.slots) || typeof parsed.entries !== "object") {
     throw new Error("This doesn't look like a Kanshou backup.");
   }
+  // A restored backup should win over what's synced, so stamp it as newest.
+  const stamp = now();
+  for (const entry of Object.values(parsed.entries)) entry.updatedAt = stamp;
+  parsed.rotationUpdatedAt = stamp;
   write(parsed);
+  queueEverything(true);
+  changeListener?.();
+}
+
+// ---- Sync outbox ----
+
+/** Entry ids (and the rotation) changed locally, each with a change counter. */
+export type Outbox = { seq: number; entries: Record<string, number>; rotation: number };
+
+function readOutbox(): Outbox {
+  try {
+    const raw = localStorage.getItem(OUTBOX_KEY);
+    if (raw) return JSON.parse(raw) as Outbox;
+  } catch {}
+  return { seq: 0, entries: {}, rotation: 0 };
+}
+
+function writeOutbox(outbox: Outbox) {
+  try {
+    localStorage.setItem(OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {}
+}
+
+let changeListener: (() => void) | null = null;
+
+/** Lets the sync engine hear about local changes. */
+export function onLocalChange(listener: () => void) {
+  changeListener = listener;
+}
+
+export function lastSyncedAt() {
+  return read().syncedAt;
+}
+
+export function hasPending() {
+  const o = readOutbox();
+  return o.rotation > 0 || Object.keys(o.entries).length > 0;
+}
+
+/** What to send: the outbox snapshot plus the data it points at. */
+export function takeOutbox() {
+  const s = read();
+  const outbox = readOutbox();
+  const entries = Object.keys(outbox.entries)
+    .map((id) => s.entries[id])
+    .filter(Boolean);
+  const media = entries.map((e) => s.media[e.mediaId]).filter(Boolean);
+  const rotation =
+    outbox.rotation > 0 ? { size: s.rotationSize, slots: s.slots, updatedAt: s.rotationUpdatedAt ?? now() } : undefined;
+  return { sent: outbox, payload: { entries, media, rotation } };
+}
+
+/**
+ * Queues local data for upload, used when a device first links to the household.
+ * The rotation only goes up when the server has none, so a second device
+ * adopts the household's slate instead of overwriting it.
+ */
+export function queueEverything(includeRotation: boolean) {
+  const s = read();
+  const outbox = readOutbox();
+  for (const id of Object.keys(s.entries)) outbox.entries[id] = ++outbox.seq;
+  if (includeRotation && s.slots.some((id) => id !== null)) {
+    if (!s.rotationUpdatedAt) write({ ...s, rotationUpdatedAt: now() });
+    outbox.rotation = ++outbox.seq;
+  }
+  writeOutbox(outbox);
+}
+
+export type RemoteState = {
+  rotationSize: number;
+  rotationUpdatedAt: string;
+  changedAt: string;
+  slots: (number | null)[];
+  entries: Entry[];
+  media: Media[];
+};
+
+/**
+ * Adopts the server's state, except for anything changed locally while the
+ * request was in flight; that stays queued for the next sync.
+ */
+export function applyRemote(remote: RemoteState, sent: Outbox) {
+  const local = read();
+  const outbox = readOutbox();
+
+  const next: State = {
+    version: 1,
+    rotationSize: remote.rotationSize,
+    slots: remote.slots,
+    rotationUpdatedAt: remote.rotationUpdatedAt,
+    syncedAt: remote.changedAt,
+    entries: Object.fromEntries(remote.entries.map((e) => [e.mediaId, e])),
+    media: { ...local.media, ...Object.fromEntries(remote.media.map((m) => [m.id, m])) },
+  };
+
+  for (const [id, seq] of Object.entries(outbox.entries)) {
+    if (sent.entries[id] === seq) delete outbox.entries[id];
+    else if (local.entries[id]) next.entries[id] = local.entries[id];
+  }
+  if (outbox.rotation > 0) {
+    if (sent.rotation === outbox.rotation) outbox.rotation = 0;
+    else {
+      next.rotationSize = local.rotationSize;
+      next.slots = local.slots;
+      next.rotationUpdatedAt = local.rotationUpdatedAt;
+    }
+  }
+
+  writeOutbox(outbox);
+  write(next);
 }
