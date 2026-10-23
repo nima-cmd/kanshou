@@ -18,7 +18,14 @@ pnpm ipad                          # the real Worker build, served on Wi-Fi at p
 
 Sign in with the `HOUSEHOLD_PASSPHRASE` from `.dev.vars`. The first sign-in asks for a profile name.
 
+**Live at https://kanshou.anime-tracker.workers.dev** (first deployed 2026-10-22). Later deploys are just `pnpm run deploy`.
+
 ## First deploy to Cloudflare
+
+Already done for this project — kept here for reference, or for setting it up somewhere new.
+Note `pnpm` itself comes from corepack on this machine: if `pnpm` is not found, run
+`corepack enable --install-directory ~/.local/bin` once rather than installing it globally,
+so `package.json`'s pinned version keeps winning.
 
 Run these once, in order, from the project folder:
 
@@ -26,6 +33,10 @@ Run these once, in order, from the project folder:
 pnpm wrangler login                # opens the browser; sign in to Cloudflare (free account)
 pnpm wrangler d1 create kanshou    # prints a database_id
 ```
+
+When `d1 create` offers to add the binding to the config for you, **say no.** It would append a
+second entry bound to `kanshou`, but the code reads `env.DB`, and its snippet drops
+`migrations_dir`. Keep the block already in `wrangler.jsonc` and change only the id.
 
 Paste that `database_id` into `wrangler.jsonc` (replacing the zeros), then:
 

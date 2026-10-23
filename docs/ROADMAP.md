@@ -20,7 +20,7 @@ Small vertical slices. Each phase ends with something we use for real.
 - [x] Local-first sync: outbox, newest-wins merge, sync on change/foreground/online/30 s
 - [x] Idle polls read one row (change stamp) to stay far under D1's daily read limit
 - [x] Device's existing local data uploads on first sign-in; Restore backup uploads too
-- [ ] First deploy (needs `wrangler login`; steps in README)
+- [x] First deploy — live at https://kanshou.anime-tracker.workers.dev (2026-10-22, personal account, D1 in WNAM). Worker is 1008 KiB gzipped against the 3 MiB cap.
 - [ ] Move the iPad's Phase 1 data over (Save backup → Restore on the new address)
 
 ## Phase 3: The log
@@ -54,6 +54,16 @@ Small vertical slices. Each phase ends with something we use for real.
 - Hosting: Cloudflare (Workers + D1), not Vercel + Supabase and not DigitalOcean.
 - Sign-in: one household passphrase; one profile for now.
 - Next.js Cache Components stays off: it hangs on the Workers runtime.
+- Deploy into a **personal** Cloudflare account, not the naghedinyc.com work one, so a household
+  app doesn't live in a work tenant and doesn't share its free-tier limits.
+- **DigitalOcean is an exit, not a non-option.** Kept open deliberately. The coupling to
+  Cloudflare is small and contained: the `D1Database` calls in `src/server/data.ts` plus three
+  queries in `src/server/auth.ts`, the `getCloudflareContext` import, and the build config. The
+  SQL is plain SQLite (unchanged on a droplet; mechanical to port to Postgres) and the auth
+  crypto is Web Crypto, which Node runs natively. **We are deliberately not building a DB
+  abstraction layer in advance** — that cost is a day if we ever take it, versus indirection in
+  every feature until then. Note DigitalOcean has no free tier, so a move trades money for
+  control; the likely trigger is a Workers runtime limit, not a quota.
 
 ## Hosting and caps
 Goal: no surprise caps at two-person scale. Cloudflare doesn't pause inactive projects and doesn't cap static bandwidth.
