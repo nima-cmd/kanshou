@@ -21,7 +21,8 @@ Small vertical slices. Each phase ends with something we use for real.
 - [x] Idle polls read one row (change stamp) to stay far under D1's daily read limit
 - [x] Device's existing local data uploads on first sign-in; Restore backup uploads too
 - [x] First deploy — live at https://kanshou.anime-tracker.workers.dev (2026-10-22, personal account, D1 in WNAM). Worker is 1008 KiB gzipped against the 3 MiB cap.
-- [ ] Move the iPad's Phase 1 data over (Save backup → Restore on the new address)
+- [x] Live on the iPad (2026-10-22). Note the Worker secrets were missed at first deploy and set afterwards.
+- [x] Episode picker: tap the episode number to set the last episode finished (for shows started elsewhere or missed taps)
 
 ## Phase 3: The log
 - [ ] Completed shows: half-star rating and short review **per person**, finish date, rewatch flag
@@ -36,6 +37,7 @@ Small vertical slices. Each phase ends with something we use for real.
 ## Phase 5: Where to watch + service advisor
 - [ ] TMDB `watch/providers` (US), AniList → TMDB mapping stored
 - [ ] Badges for our services on every title; TMDB and JustWatch attribution
+- [ ] Episode names per season from TMDB, in the episode picker. **Not AniList:** its `streamingEpisodes` (from Crunchyroll) is incomplete and sometimes copies another season's list (2026-10-22: Fruits Basket Season 2 shows Season 1's titles), so it would mislead exactly where names are meant to help. Check TMDB's anime seasons before building on it.
 - [ ] Advisor: "6 titles on your list are only on Netflix — try a month, then rotate off"
 
 ## Phase 6: Recommendations

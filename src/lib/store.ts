@@ -178,6 +178,28 @@ export function minusOne(mediaId: number) {
   });
 }
 
+/** Jumps to an episode, e.g. for a show started elsewhere. Returns true when that finished the series. */
+export function setProgress(mediaId: number, episode: number): boolean {
+  let finished = false;
+  update((s) => {
+    const entry = s.entries[mediaId];
+    const media = s.media[mediaId];
+    if (!entry || !media) return;
+    const total = media.episodes;
+    const next = Math.max(0, Math.min(total ?? Infinity, Math.round(episode)));
+    if (next === entry.progress) return;
+
+    entry.progress = next;
+    if (next > 0) entry.startedAt ??= today();
+    entry.updatedAt = now();
+    if (total && next >= total) {
+      finish(s, mediaId);
+      finished = true;
+    }
+  });
+  return finished;
+}
+
 function finish(s: State, mediaId: number) {
   const entry = s.entries[mediaId];
   if (!entry) return;

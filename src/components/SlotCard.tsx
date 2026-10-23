@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { knownEpisodes, type Media } from "@/lib/anilist";
 import { accentFor, inkFor } from "@/lib/color";
+import { EpisodeSheet } from "./EpisodeSheet";
 import { markFinished, minusOne, moveSlot, plusOne, removeFromRotation, type Entry } from "@/lib/store";
 
 type Props = {
@@ -19,6 +20,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function SlotCard({ slot, slotCount, media, entry, onSwap, onFinished }: Props) {
   const [bumps, setBumps] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const accent = accentFor(media.color);
   const ink = inkFor(accent);
@@ -42,7 +44,7 @@ export function SlotCard({ slot, slotCount, media, entry, onSwap, onFinished }: 
 
   return (
     <article
-      className={`relative isolate flex min-h-[300px] rounded-[28px] bg-ink-raised ring-1 ring-ink-line ${menuOpen ? "z-30" : ""}`}
+      className={`relative isolate flex min-h-[300px] rounded-[28px] bg-ink-raised ring-1 ring-ink-line ${menuOpen || pickerOpen ? "z-30" : ""}`}
       style={{ "--accent": accent, "--accent-ink": ink } as CSSProperties}
     >
       {/* Key art backdrop, clipped on its own so the options menu can overflow the card */}
@@ -112,13 +114,17 @@ export function SlotCard({ slot, slotCount, media, entry, onSwap, onFinished }: 
           {/* Progress */}
           <div className="mt-auto pt-5">
             <div className="flex items-end justify-between gap-3">
-              <p className="font-display tabular leading-none">
+              <button
+                onClick={() => setPickerOpen(true)}
+                aria-label="Set episode"
+                className="-m-2 rounded-2xl p-2 text-left font-display tabular leading-none active:bg-white/10"
+              >
                 <span className="mr-2 align-middle text-sm font-sans uppercase tracking-[0.2em] text-paper-faint">ep</span>
                 <span key={bumps} className={`inline-block text-6xl font-semibold text-paper ${bumps ? "animate-bump" : ""}`}>
                   {pad(entry.progress)}
                 </span>
                 <span className="text-3xl text-paper-faint"> / {total ? pad(total) : "?"}</span>
-              </p>
+              </button>
               <p className="pb-1 text-right text-xs text-paper-faint">
                 {!total && aired !== null ? (caughtUp ? "Caught up · airing" : `${aired} aired`) : null}
                 {total ? `${total - entry.progress} to go` : null}
@@ -160,6 +166,10 @@ export function SlotCard({ slot, slotCount, media, entry, onSwap, onFinished }: 
           </div>
         </div>
       </div>
+
+      {pickerOpen && (
+        <EpisodeSheet media={media} entry={entry} onClose={() => setPickerOpen(false)} onFinished={onFinished} />
+      )}
     </article>
   );
 }
