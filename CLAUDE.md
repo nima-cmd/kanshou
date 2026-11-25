@@ -54,3 +54,21 @@ A personal anime tracking and recommendation app for two people who watch togeth
 - Ratings and reviews are **separate per person**.
 - Rotation is **configurable, default 4**.
 - History: **import from the Crunchyroll history page** (pasted or saved copy, no scraping).
+
+## ⚠️ Kanshou is moving into Work-Hub (decided 2026-11-24) — read before Phase 3
+Kanshou's **data moves into `nima-cmd/Work-Hub`'s Postgres** and the app becomes Work-Hub's Home
+"anime" area. That is *phase 2* in Work-Hub's own plan; today this repo is still the live
+Cloudflare Worker at https://kanshou.anime-tracker.workers.dev and stays usable throughout.
+
+- **Ask Nima before any big new D1 schema work.** This is not a style note — **Phase 3 (the log:
+  per-person ratings, reviews, finish dates, rewatch flag) is exactly new schema**, so it is the
+  first thing that hits this rule. Agree the destination shape first; every D1-native table added
+  now is one more thing to port to Postgres later.
+- `gaming-letterbox` follows the same path (the Home "game" area). `frieren-spellbook` does not —
+  it stays its own repo and feeds Home's Dinner card through two `window.X` data files.
+- **Work-Hub only ever reads this repo, over the GitHub API, read-only.** It never writes here.
+  What it reads is the newest 100 commits — so **commit and push at the end of every session**,
+  or Home cannot see the work.
+- Kanshou sits **outside the syllabus rotation** (his call, 2026-11-24). Don't run the syllabus
+  rotation check in this repo; it neither takes the non-Spine slot nor needs a declared
+  deliverable. The teaching rules still apply: narrate each change before making it.
