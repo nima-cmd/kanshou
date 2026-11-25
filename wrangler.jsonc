@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "kanshou",
-      // Created 2026-10-22 in the personal account (thenimaerfani@gmail.com), region WNAM.
+      // Created 2026-11-24 in the personal account (thenimaerfani@gmail.com), region WNAM.
       "database_id": "4d62537f-1883-4776-9b90-95ac6fd74991",
       "migrations_dir": "migrations"
     }

@@ -20,7 +20,7 @@ Small vertical slices. Each phase ends with something we use for real.
 - [x] Local-first sync: outbox, newest-wins merge, sync on change/foreground/online/30 s
 - [x] Idle polls read one row (change stamp) to stay far under D1's daily read limit
 - [x] Device's existing local data uploads on first sign-in; Restore backup uploads too
-- [x] First deploy — live at https://kanshou.anime-tracker.workers.dev (2026-10-22, personal account, D1 in WNAM). Worker is 1008 KiB gzipped against the 3 MiB cap.
+- [x] First deploy — live at https://kanshou.anime-tracker.workers.dev (2026-11-24, personal account, D1 in WNAM). Worker is 1008 KiB gzipped against the 3 MiB cap.
 - [x] Live on the iPad (2026-10-22). Note the Worker secrets were missed at first deploy and set afterwards.
 - [x] Episode picker: tap the episode number to set the last episode finished (for shows started elsewhere or missed taps)
 
@@ -58,14 +58,23 @@ Small vertical slices. Each phase ends with something we use for real.
 - Next.js Cache Components stays off: it hangs on the Workers runtime.
 - Deploy into a **personal** Cloudflare account, not the naghedinyc.com work one, so a household
   app doesn't live in a work tenant and doesn't share its free-tier limits.
-- **DigitalOcean is an exit, not a non-option.** Kept open deliberately. The coupling to
-  Cloudflare is small and contained: the `D1Database` calls in `src/server/data.ts` plus three
-  queries in `src/server/auth.ts`, the `getCloudflareContext` import, and the build config. The
-  SQL is plain SQLite (unchanged on a droplet; mechanical to port to Postgres) and the auth
-  crypto is Web Crypto, which Node runs natively. **We are deliberately not building a DB
-  abstraction layer in advance** — that cost is a day if we ever take it, versus indirection in
-  every feature until then. Note DigitalOcean has no free tier, so a move trades money for
-  control; the likely trigger is a Workers runtime limit, not a quota.
+- **Kanshou is scheduled to be absorbed into Work-Hub (`nima-cmd/Work-Hub`), which already runs
+  on DigitalOcean App Platform in SFO3.** Confirmed 2026-11-24 by reading that repo: its Home
+  section landed the same day, `src/ingest/homeHub.js` lists `kanshou` in `EXTRA_REPOS`
+  (alongside `nima-cmd-work` and the cooking repo `frieren-spellbook`), and its `CLAUDE.md`
+  records *"Next: Kanshou (the anime diary, Next.js + Cloudflare D1 today) moved in as phase 2."*
+  Today Home only tracks our commits and links out; the app itself is still this Cloudflare
+  Worker.
+- **So the DigitalOcean move is the plan, not a hypothetical exit** — and the target is not a bare
+  droplet. It is an existing Node service on DO **managed Postgres** in SFO3, behind
+  `SITE_PASSWORD`, sharing a connection pool (`WORKHUB_POOL_MAX=8`). Correcting the earlier note
+  here, which argued against preparing for a move that "may never happen": that was written
+  before Work-Hub was read, and it was wrong on the evidence.
+- **What this does and does not change.** Phase 3's features (per-person ratings, reviews, diary,
+  stats) are needed under either host, so the work is not wasted. What changes is the *shape*:
+  SQLite dialect and the `D1Database` API in `src/server/data.ts` become the migration surface,
+  and every new query added to it widens that surface. Decide before Phase 3 whether to keep
+  writing D1-native code and port once, or introduce a thin query layer now.
 
 ## Hosting and caps
 Goal: no surprise caps at two-person scale. Cloudflare doesn't pause inactive projects and doesn't cap static bandwidth.
